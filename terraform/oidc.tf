@@ -31,7 +31,7 @@ data "aws_iam_policy_document" "github_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:Akshata-07/sample-application:ref:refs/heads/main"]
+      values   = ["repo:Akshata-07@110539370/sample-application@1428555722:ref:refs/heads/main"]
     }
   }
 }
