@@ -30,8 +30,9 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                     = "devops-portfolio-public-${count.index + 1}"
-    "kubernetes.io/role/elb" = "1"
+    Name                                         = "devops-portfolio-public-${count.index + 1}"
+    "kubernetes.io/role/elb"                     = "1"
+    "kubernetes.io/cluster/devops-portfolio-eks" = "shared"
   }
 }
 
@@ -42,8 +43,9 @@ resource "aws_subnet" "private" {
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
-    Name                              = "devops-portfolio-private-${count.index + 1}"
-    "kubernetes.io/role/internal-elb" = "1"
+    Name                                         = "devops-portfolio-private-${count.index + 1}"
+    "kubernetes.io/role/internal-elb"            = "1"
+    "kubernetes.io/cluster/devops-portfolio-eks" = "shared"
   }
 }
 
