@@ -21,5 +21,5 @@ variable "kubernetes_version" {
 variable "cluster_api_allowed_cidr" {
   description = "Public IP CIDR allowed to access the EKS API"
   type        = string
-  default     = "103.197.227.96/32"
+  default     = "103.226.239.109/32"
 }

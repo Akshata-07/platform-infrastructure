@@ -12,3 +12,8 @@ crash.*.log
 *.tfvars.json
 .terraformrc
 terraform.rc
+
+# Local Terraform artifacts and backups
+tfplan
+terraform-state-backup*.json
+changes-review.txt

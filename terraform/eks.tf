@@ -98,7 +98,7 @@ resource "aws_eks_node_group" "main" {
   subnet_ids      = aws_subnet.private[*].id
   version         = var.kubernetes_version
   capacity_type   = "ON_DEMAND"
-  instance_types  = ["t3.small"]
+  instance_types  = ["c7i-flex.large"]
   disk_size       = 30
 
   scaling_config {
@@ -119,6 +119,50 @@ resource "aws_eks_node_group" "main" {
 
   tags = {
     Project   = "devops-portfolio"
+    ManagedBy = "Terraform"
+  }
+}
+
+
+resource "aws_eks_node_group" "observability" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "devops-portfolio-observability"
+  node_role_arn   = aws_iam_role.eks_nodes.arn
+  subnet_ids      = [aws_subnet.private[0].id]
+  version         = var.kubernetes_version
+  capacity_type   = "ON_DEMAND"
+  instance_types  = ["m7i-flex.large"]
+  disk_size       = 30
+
+  scaling_config {
+    desired_size = 1
+    min_size     = 1
+    max_size     = 1
+  }
+
+  labels = {
+    workload = "observability"
+  }
+
+  taint {
+    key    = "dedicated"
+    value  = "observability"
+    effect = "NO_SCHEDULE"
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker_policy,
+    aws_iam_role_policy_attachment.eks_ecr_read_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy
+  ]
+
+  tags = {
+    Project   = "devops-portfolio"
+    Workload  = "observability"
     ManagedBy = "Terraform"
   }
 }
