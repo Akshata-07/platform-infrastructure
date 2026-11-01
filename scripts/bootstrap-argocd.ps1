@@ -1,12 +1,10 @@
-
 param(
     [string]$GitOpsRepoPath
 )
 
 $ErrorActionPreference = "Stop"
 
-# Default: assumes platform-infrastructure and platform-gitops
-# are sibling folders under the same workspace directory.
+# Locate the GitOps repository
 if ([string]::IsNullOrWhiteSpace($GitOpsRepoPath)) {
     $WorkspaceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $GitOpsRepoPath = Join-Path $WorkspaceRoot "platform-gitops"
@@ -22,23 +20,53 @@ if ($LASTEXITCODE -ne 0 -or $Context -notmatch [regex]::Escape($ExpectedCluster)
     throw "Wrong Kubernetes context. Select the devops-portfolio-eks cluster first."
 }
 
-# Validate GitOps Application manifests before installation
+# Validate GitOps Application manifests
 if (-not (Test-Path $ApplicationsPath -PathType Container)) {
     throw "GitOps Application directory not found: $ApplicationsPath"
 }
+
+$ExpectedApplicationNames = @(
+    "alloy.yaml"
+    "aws-load-balancer-controller.yaml"
+    "loki.yaml"
+    "metrics-server.yaml"
+    "monitoring.yaml"
+    "sample-application.yaml"
+)
 
 $ApplicationFiles = @(
     Get-ChildItem $ApplicationsPath -Filter "*.yaml" -File |
     Sort-Object Name
 )
 
-if ($ApplicationFiles.Count -ne 6) {
-    throw "Expected 6 Argo CD Application manifests, found $($ApplicationFiles.Count). Check: $ApplicationsPath"
+$ActualApplicationNames = @(
+    $ApplicationFiles | ForEach-Object { $_.Name }
+)
+
+$MissingApplications = @(
+    $ExpectedApplicationNames | Where-Object {
+        $_ -notin $ActualApplicationNames
+    }
+)
+
+$UnexpectedApplications = @(
+    $ActualApplicationNames | Where-Object {
+        $_ -notin $ExpectedApplicationNames
+    }
+)
+
+if ($MissingApplications.Count -gt 0 -or $UnexpectedApplications.Count -gt 0) {
+    throw @"
+Argo CD Application manifest validation failed.
+
+Missing: $($MissingApplications -join ', ')
+Unexpected: $($UnexpectedApplications -join ', ')
+"@
 }
 
-Write-Host "Found $($ApplicationFiles.Count) Argo CD Application manifests."
+Write-Host "All six expected Argo CD Application manifests found."
 
-# Retrieve the VPC ID from Terraform state
+# Retrieve VPC ID from Terraform
 $TerraformPath = Join-Path (Split-Path -Parent $PSScriptRoot) "terraform"
 
 Write-Host "Retrieving VPC ID from Terraform..."
