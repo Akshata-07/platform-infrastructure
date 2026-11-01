@@ -38,6 +38,19 @@ if ($ApplicationFiles.Count -ne 6) {
 
 Write-Host "Found $($ApplicationFiles.Count) Argo CD Application manifests."
 
+# Retrieve the VPC ID from Terraform state
+$TerraformPath = Join-Path (Split-Path -Parent $PSScriptRoot) "terraform"
+
+Write-Host "Retrieving VPC ID from Terraform..."
+
+$VpcId = terraform "-chdir=$TerraformPath" output -raw vpc_id
+
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($VpcId)) {
+    throw "Could not retrieve VPC ID from Terraform state."
+}
+
+Write-Host "Using VPC ID: $VpcId"
+
 # Install Argo CD
 $Version = "v3.5.6"
 $Manifest = "https://raw.githubusercontent.com/argoproj/argo-cd/$Version/manifests/install.yaml"
@@ -79,6 +92,38 @@ foreach ($File in $ApplicationFiles) {
 
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to register Application: $($File.Name)"
+    }
+
+    if ($File.Name -eq "aws-load-balancer-controller.yaml") {
+        Write-Host "Setting dynamic VPC ID in Helm parameters..."
+
+        $Patch = @{
+            spec = @{
+                source = @{
+                    helm = @{
+                        parameters = @(
+                            @{
+                                name  = "aws-load-balancer-controller.vpcId"
+                                value = $VpcId
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        $PatchJson = $Patch | ConvertTo-Json -Depth 10 -Compress
+
+        kubectl patch application aws-load-balancer-controller `
+            -n argocd `
+            --type merge `
+            --patch $PatchJson
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to configure VPC ID for AWS Load Balancer Controller."
+        }
+
+        Write-Host "AWS Load Balancer Controller configured with VPC ID: $VpcId"
     }
 }
 
