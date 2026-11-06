@@ -6,6 +6,8 @@ Terraform-managed AWS infrastructure for a Kubernetes-based DevOps platform.
 
 This project provisions and manages the AWS infrastructure required to run a containerized application platform with automated CI/CD, GitOps deployment, monitoring and centralized logging.
 
+![Architecture Digram](./docs/aws-devops-architecture.png)
+
 ### Technology Stack
 
 **Cloud and Infrastructure**
